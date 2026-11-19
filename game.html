@@ -10,6 +10,184 @@
 <section class="controls"><div class="control-layout"><div class="dice-side"><div class="die" id="die">–</div><strong class="turn" id="turn">Player 1's turn</strong><span class="remaining" id="remaining">100 points remaining</span></div><div class="buttons"><button class="action" id="new" type="button">New</button><button class="action" id="repeat" type="button" disabled>Repeat</button><button class="action dice" id="dice" type="button">Dice</button><button class="action done" id="done" type="button" disabled>Done</button></div></div></section>
 </div>
 <script>
-(()=>{const root=document.getElementById('word-game');if(root.dataset.ready)return;root.dataset.ready='1';const $=s=>root.querySelector(s),grid=$('#grid');let names=['Player 1','Player 2'],texts=['',''],active=0,roll=0,left=0,picked=[],over=false,started=false;const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').concat(['SPACE','.',',','!','?',''']);const dictionary=new Set(('a i am an and are as at be before brown can clear correct dog english first fox fun game good has have he her his in is it jumps language lazy learning make more on or over player plays quick race sentence she space text the their they this to turn valid we win winner with word words write you your').split(' '));function sentenceCase(text){let cap=true;return[...text.toLowerCase()].map(ch=>{if(/[a-z]/.test(ch)){const out=cap?ch.toUpperCase():ch;cap=false;return out}if(/[.!?]/.test(ch))cap=true;return ch}).join('')}function words(text){return text.replace(/_/g,' ').toLowerCase().match(/[a-z]+/g)||[]}function valid(text){const list=words(text);return list.length>0&&list.every(w=>dictionary.has(w))}function pool(){return Math.max(0,100-texts[0].length-texts[1].length)}chars.forEach(x=>{const b=document.createElement('button');b.type='button';b.className='char'+(x==='SPACE'?' space':'');b.textContent=x;b.setAttribute('aria-label',x==='SPACE'?'Add a space':`Add ${x}`);b.addEventListener('click',()=>add(x));grid.appendChild(b)});function letters(on){grid.querySelectorAll('button').forEach(b=>b.disabled=!on)}function update(){$('#label1').textContent=names[0];$('#label2').textContent=names[1];$('#text1').textContent=texts[0]?sentenceCase(texts[0]):'Your text appears here...';$('#text2').textContent=texts[1]?sentenceCase(texts[1]):'Your text appears here...';$('#score1').textContent=texts[0].length+' points';$('#score2').textContent=texts[1].length+' points';$('#meter1').style.width=texts[0].length+'%';$('#meter2').style.width=texts[1].length+'%';if(!over){$('#turn').textContent=names[active]+"'s turn";$('#remaining').textContent=pool()+' points remaining'+(roll?' • '+left+' choices left':'')}$('#repeat').disabled=!picked.length||over||!started;$('#done').disabled=!roll||over||!started;$('#dice').disabled=!!roll||over||pool()===0||!started;letters(!!roll&&left>0&&!over&&pool()>0&&started)}function finish(){if(pool()>0)return false;over=true;const v=[valid(texts[0]),valid(texts[1])];let result;if(v[0]&&v[1])result=texts[0].length>texts[1].length?names[0]+' wins!':texts[1].length>texts[0].length?names[1]+' wins!':'The game is a tie!';else if(v[0]&&!v[1])result=names[0]+' wins with valid English!';else if(!v[0]&&v[1])result=names[1]+' wins with valid English!';else result='No winner: both texts contain invalid English words.';$('#turn').textContent=result;$('#remaining').textContent='100 points used • '+texts[0].length+'–'+texts[1].length;update();return true}function add(choice){if(!roll||left<1||over||pool()<1)return;let t=texts[active];if(choice==='SPACE'){t+='_';picked.push('_')}else{if(t.endsWith('_'))t=t.slice(0,-1)+' ';t+=choice;picked.push(choice)}texts[active]=t;left--;update();finish()}$('#dice').addEventListener('click',()=>{if(roll||over||pool()<1||!started)return;roll=1+Math.floor(Math.random()*6);left=Math.min(roll,pool());picked=[];$('#die').textContent=roll;update()});$('#repeat').addEventListener('click',()=>{if(!picked.length||over)return;texts[active]=texts[active].slice(0,-1);picked.pop();left=Math.min(roll,left+1);update()});$('#done').addEventListener('click',()=>{if(!roll||over)return;if(texts[active].endsWith('_'))texts[active]=texts[active].slice(0,-1)+' ';roll=0;left=0;picked=[];if(finish())return;active=active===0?1:0;$('#die').textContent='–';update()});$('#new').addEventListener('click',()=>{texts=['',''];active=0;roll=0;left=0;picked=[];over=false;started=false;$('#die').textContent='–';$('#setup').style.display='grid';update();setTimeout(()=>$('#name1').focus(),0)});$('#form').addEventListener('submit',e=>{e.preventDefault();const n1=$('#name1').value.trim(),n2=$('#name2').value.trim();if(!n1||!n2){$('#error').textContent='Please enter a name for both players.';return}names=[n1.slice(0,20),n2.slice(0,20)];texts=['',''];active=0;roll=0;left=0;picked=[];over=false;started=true;$('#error').textContent='';$('#die').textContent='–';$('#setup').style.display='none';update()});update();setTimeout(()=>$('#name1').focus(),0)})();
+(()=>{
+  const root = document.getElementById('word-game');
+  if (root.dataset.ready) return;
+  root.dataset.ready = '1';
+  
+  const $ = s => root.querySelector(s);
+  const grid = $('#grid');
+  
+  let names = ['Player 1', 'Player 2'];
+  let texts = ['', ''];
+  let active = 0;
+  let roll = 0;
+  let left = 0;
+  let picked = [];
+  let over = false;
+  let started = false;
+  
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').concat(['SPACE', '.', ',', '!', '?', '']);
+  const dictionary = new Set(('a i am an and are as at be before brown can clear correct dog english first fox fun game good has have he her his in is it jumps language lazy learning make more on or over player plays quick race sentence she space text the their they this to turn valid we win winner with word words write you your').split(' '));
+  
+  function sentenceCase(text) {
+    let cap = true;
+    return [...text.toLowerCase()].map(ch => {
+      if (/[a-z]/.test(ch)) {
+        const out = cap ? ch.toUpperCase() : ch;
+        cap = false;
+        return out;
+      }
+      if (/[.!?]/.test(ch)) cap = true;
+      return ch;
+    }).join('');
+  }
+  
+  function words(text) {
+    return text.replace(/_/g, ' ').toLowerCase().match(/[a-z]+/g) || [];
+  }
+  
+  function valid(text) {
+    const list = words(text);
+    return list.length > 0 && list.every(w => dictionary.has(w));
+  }
+  
+  function pool() {
+    return Math.max(0, 100 - texts[0].length - texts[1].length);
+  }
+  
+  chars.forEach(x => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'char' + (x === 'SPACE' ? ' space' : '');
+    b.textContent = x;
+    b.setAttribute('aria-label', x === 'SPACE' ? 'Add a space' : `Add ${x}`);
+    b.addEventListener('click', () => add(x));
+    grid.appendChild(b);
+  });
+  
+  function letters(on) {
+    grid.querySelectorAll('button').forEach(b => b.disabled = !on);
+  }
+  
+  function update() {
+    $('#label1').textContent = names[0];
+    $('#label2').textContent = names[1];
+    $('#text1').textContent = texts[0] ? sentenceCase(texts[0]) : 'Your text appears here...';
+    $('#text2').textContent = texts[1] ? sentenceCase(texts[1]) : 'Your text appears here...';
+    $('#score1').textContent = texts[0].length + ' points';
+    $('#score2').textContent = texts[1].length + ' points';
+    $('#meter1').style.width = texts[0].length + '%';
+    $('#meter2').style.width = texts[1].length + '%';
+    if (!over) {
+      $('#turn').textContent = names[active] + "'s turn";
+      $('#remaining').textContent = pool() + ' points remaining' + (roll ? ' • ' + left + ' choices left' : '');
+    }
+    $('#repeat').disabled = !picked.length || over || !started;
+    $('#done').disabled = !roll || over || !started;
+    $('#dice').disabled = !!roll || over || pool() === 0 || !started;
+    letters(!!roll && left > 0 && !over && pool() > 0 && started);
+  }
+  
+  function finish() {
+    if (pool() > 0) return false;
+    over = true;
+    const v = [valid(texts[0]), valid(texts[1])];
+    let result;
+    if (v[0] && v[1]) result = texts[0].length > texts[1].length ? names[0] + ' wins!' : texts[1].length > texts[0].length ? names[1] + ' wins!' : 'The game is a tie!';
+    else if (v[0] && !v[1]) result = names[0] + ' wins with valid English!';
+    else if (!v[0] && v[1]) result = names[1] + ' wins with valid English!';
+    else result = 'No winner: both texts contain invalid English words.';
+    $('#turn').textContent = result;
+    $('#remaining').textContent = '100 points used • ' + texts[0].length + '–' + texts[1].length;
+    update();
+    return true;
+  }
+  
+  function add(choice) {
+    if (!roll || left < 1 || over || pool() < 1) return;
+    let t = texts[active];
+    if (choice === 'SPACE') {
+      t += '_';
+      picked.push('_');
+    } else {
+      if (t.endsWith('_')) t = t.slice(0, -1) + ' ';
+      t += choice;
+      picked.push(choice);
+    }
+    texts[active] = t;
+    left--;
+    update();
+    finish();
+  }
+  
+  $('#dice').addEventListener('click', () => {
+    if (roll || over || pool() < 1 || !started) return;
+    roll = 1 + Math.floor(Math.random() * 6);
+    left = Math.min(roll, pool());
+    picked = [];
+    $('#die').textContent = roll;
+    update();
+  });
+  
+  $('#repeat').addEventListener('click', () => {
+    if (!picked.length || over) return;
+    texts[active] = texts[active].slice(0, -1);
+    picked.pop();
+    left = Math.min(roll, left + 1);
+    update();
+  });
+  
+  $('#done').addEventListener('click', () => {
+    if (!roll || over) return;
+    if (texts[active].endsWith('_')) texts[active] = texts[active].slice(0, -1) + ' ';
+    roll = 0;
+    left = 0;
+    picked = [];
+    if (finish()) return;
+    active = active === 0 ? 1 : 0;
+    $('#die').textContent = '–';
+    update();
+  });
+  
+  $('#new').addEventListener('click', () => {
+    texts = ['', ''];
+    active = 0;
+    roll = 0;
+    left = 0;
+    picked = [];
+    over = false;
+    started = false;
+    $('#die').textContent = '–';
+    $('#setup').style.display = 'grid';
+    update();
+    setTimeout(() => $('#name1').focus(), 0);
+  });
+  
+  $('#form').addEventListener('submit', e => {
+    e.preventDefault();
+    const n1 = $('#name1').value.trim();
+    const n2 = $('#name2').value.trim();
+    if (!n1 || !n2) {
+      $('#error').textContent = 'Please enter a name for both players.';
+      return;
+    }
+    names = [n1.slice(0, 20), n2.slice(0, 20)];
+    texts = ['', ''];
+    active = 0;
+    roll = 0;
+    left = 0;
+    picked = [];
+    over = false;
+    started = true;
+    $('#error').textContent = '';
+    $('#die').textContent = '–';
+    $('#setup').style.display = 'none';
+    update();
+  });
+  
+  update();
+  setTimeout(() => $('#name1').focus(), 0);
+})();
 </script>
 </div>
